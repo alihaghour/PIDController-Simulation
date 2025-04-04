@@ -1,4 +1,41 @@
+// Ali Haghour 
+// 04-04-2025
+// PID controller Windows GUI
+
 #include <windows.h>
+#include <commctrl.h>
+#include <string>
+
+// Global handles for the edit controls
+HWND g_hwndKpEdit = NULL;
+HWND g_hwndKiEdit = NULL;
+HWND g_hwndKdEdit = NULL;
+HWND g_hwndRunButton = NULL;
+
+// Default values for PID parameters
+const WCHAR DEFAULT_KP[] = L"1.0";
+const WCHAR DEFAULT_KI[] = L"0.1";
+const WCHAR DEFAULT_KD[] = L"0.05";
+
+// ID values for controls
+#define ID_KP_EDIT 101
+#define ID_KI_EDIT 102
+#define ID_KD_EDIT 103
+#define ID_RUN_BUTTON 104
+
+// Function to get PID values from edit controls
+void GetPIDValues(double& kp, double& ki, double& kd) {
+    WCHAR buffer[256];
+
+    GetWindowText(g_hwndKpEdit, buffer, 256);
+    kp = _wtof(buffer);
+
+    GetWindowText(g_hwndKiEdit, buffer, 256);
+    ki = _wtof(buffer);
+
+    GetWindowText(g_hwndKdEdit, buffer, 256);
+    kd = _wtof(buffer);
+}
 
 // Window procedure function
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 

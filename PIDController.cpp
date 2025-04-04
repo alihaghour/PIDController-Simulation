@@ -1,79 +1,230 @@
-// PIDController.h
-#ifndef PID_CONTROLLER_H
-#define PID_CONTROLLER_H
+ï»¿// Ali Haghour 
+// 04-04-2025
+// PID controller  implementation file
+// PIDController.cpp
+#include "PIDController.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <algorithm> // For std::clamp
 
-#include <vector>
-#include <string>
+PIDController::PIDController(double kp, double ki, double kd, double target)
+    : Kp(kp), Ki(ki), Kd(kd), setpoint(target), error_sum(0.0), last_error(0.0), output(0.0),
+    output_min(-12.0), output_max(12.0) {
+}
 
-class PIDController {
-private:
-    double Kp;        // Proportional gain
-    double Ki;        // Integral gain
-    double Kd;        // Derivative gain
+void PIDController::setGains(double kp, double ki, double kd) {
+    Kp = kp;
+    Ki = ki;
+    Kd = kd;
+}
 
-    double setpoint;  // Desired value
-    double error_sum; // Accumulated error for integral term
-    double last_error;// Previous error for derivative term
-    double output;    // Controller output
-    double output_min;// Output minimum limit
-    double output_max;// Output maximum limit
+void PIDController::setSetpoint(double target) {
+    setpoint = target;
+}
 
-public:
-    PIDController(double kp, double ki, double kd, double target);
+void PIDController::setOutputLimits(double min, double max) {
+    output_min = min;
+    output_max = max;
+}
 
-    void setGains(double kp, double ki, double kd);
-    void setSetpoint(double target);
-    void setOutputLimits(double min, double max);
-    void reset();
-    double compute(double current_value, double dt);
-};
+void PIDController::reset() {
+    error_sum = 0.0;
+    last_error = 0.0;
+    output = 0.0;
+}
 
-class DCMotorModel {
-private:
-    // Electrical parameters
-    double resistance;    // Armature resistance (ohms)
-    double inductance;    // Armature inductance (henries)
-    double kTorque;       // Torque constant (N·m/A)
-    double kEMF;          // Back-EMF constant (V·s/rad)
+double PIDController::compute(double current_value, double dt) {
+    // Calculate error
+    double error = setpoint - current_value;
 
-    // Mechanical parameters
-    double inertia;       // Rotor inertia (kg·m²)
-    double friction;      // Viscous friction coefficient (N·m·s/rad)
-    double loadTorque;    // External load torque (N·m)
+    // Proportional term
+    double P_term = Kp * error;
 
-    // State variables
-    double current;       // Armature current (A)
-    double voltage;       // Input voltage (V)
-    double speed;         // Angular velocity (rad/s)
-    double position;      // Angular position (rad)
+    // Integral term
+    error_sum += error * dt;
+    double I_term = Ki * error_sum;
 
-public:
-    DCMotorModel(double r = 1.0, double l = 0.5, double kt = 0.01, double ke = 0.01,
-        double j = 0.01, double f = 0.001, double lt = 0.0);
+    // Derivative term (on measurement, not error)
+    double derivative = (error - last_error) / dt;
+    double D_term = Kd * derivative;
 
-    void setVoltage(double v);
-    void setLoadTorque(double lt);
-    void update(double dt);
+    // Calculate total output
+    output = P_term + I_term + D_term;
 
-    double getCurrent() const;
-    double getSpeed() const;
-    double getPosition() const;
+    // Apply output limits (anti-windup)
+    if (output > output_max) {
+        output = output_max;
+        // Anti-windup: Prevent integral term from growing when saturated
+        error_sum -= error * dt;
+    }
+    else if (output < output_min) {
+        output = output_min;
+        // Anti-windup: Prevent integral term from growing when saturated
+        error_sum -= error * dt;
+    }
 
-    void reset(double initial_position = 0.0, double initial_speed = 0.0, double initial_current = 0.0);
+    // Store error for next iteration
+    last_error = error;
 
-    // Method to set all motor parameters at once
-    void setMotorParameters(double r, double l, double kt, double ke, double j, double f);
-};
+    return output;
+}
 
-// Function to run simulation and generate data for graphing
+DCMotorModel::DCMotorModel(double r, double l, double kt, double ke, double j, double f, double lt)
+    : resistance(r), inductance(l), kTorque(kt), kEMF(ke), inertia(j), friction(f),
+    loadTorque(lt), current(0.0), voltage(0.0), speed(0.0), position(0.0) {
+}
+
+void DCMotorModel::setVoltage(double v) {
+    voltage = v;
+}
+
+void DCMotorModel::setLoadTorque(double lt) {
+    loadTorque = lt;
+}
+
+void DCMotorModel::update(double dt) {
+    // Calculate back-EMF
+    double backEMF = kEMF * speed;
+
+    // Update current based on di/dt = (V - Ri - kEMF*Ï‰) / L
+    double di_dt = (voltage - resistance * current - backEMF) / inductance;
+    current += di_dt * dt;
+
+    // Calculate motor torque
+    double motorTorque = kTorque * current;
+
+    // Calculate net torque
+    double netTorque = motorTorque - loadTorque - friction * speed;
+
+    // Update angular acceleration based on torque
+    double angular_acceleration = netTorque / inertia;
+
+    // Update speed
+    speed += angular_acceleration * dt;
+
+    // Update position
+    position += speed * dt;
+}
+
+double DCMotorModel::getCurrent() const {
+    return current;
+}
+
+double DCMotorModel::getSpeed() const {
+    return speed;
+}
+
+double DCMotorModel::getPosition() const {
+    return position;
+}
+
+void DCMotorModel::reset(double initial_position, double initial_speed, double initial_current) {
+    position = initial_position;
+    speed = initial_speed;
+    current = initial_current;
+    voltage = 0.0;
+}
+
+void DCMotorModel::setMotorParameters(double r, double l, double kt, double ke, double j, double f) {
+    resistance = r;
+    inductance = l;
+    kTorque = kt;
+    kEMF = ke;
+    inertia = j;
+    friction = f;
+}
+
 std::vector<std::vector<double>> runMotorSimulation(double Kp, double Ki, double Kd,
     double setpoint, double simulation_time,
     double dt, double r, double l, double kt,
     double ke, double j, double f,
-    bool position_control = true,
-    bool add_disturbance = true);
+    bool position_control,
+    bool add_disturbance) {
+    // Initialize controller and DC motor
+    PIDController pid(Kp, Ki, Kd, setpoint);
+    DCMotorModel motor(r, l, kt, ke, j, f);
 
-// Function to save data to CSV for easy graphing in external tools
-void saveToCSV(const std::vector<std::vector<double>>& data, const std::string& filename);
+    // Set appropriate output limits (voltage limits)
+    pid.setOutputLimits(-12.0, 12.0);  // Typical supply voltage for DC motors
 
-#endif // PID_CONTROLLER_H
+    // Data for graphing:
+    // [time, setpoint, actual_value(position or speed), voltage, current, speed, position, p_term, i_term, d_term]
+    std::vector<std::vector<double>> data;
+
+    // Run simulation
+    double time = 0.0;
+    double p_term = 0.0;
+    double i_term = 0.0;
+    double d_term = 0.0;
+
+    while (time <= simulation_time) {
+        // Get current motor state
+        double actual_value = position_control ? motor.getPosition() : motor.getSpeed();
+
+        // Calculate control output
+        double error = setpoint - actual_value;
+        p_term = Kp * error;
+
+        // Compute PID output (voltage)
+        double control_voltage = pid.compute(actual_value, dt);
+
+        // Approximate the I and D terms based on total output and P term
+        double last_error = (position_control ? motor.getPosition() : motor.getSpeed()) - setpoint;
+        d_term = Kd * (error - last_error) / dt;
+        i_term = control_voltage - p_term - d_term;
+
+        // Add disturbance at 50% of simulation time (additional load torque)
+        if (add_disturbance && time >= simulation_time * 0.5 && time <= simulation_time * 0.6) {
+            motor.setLoadTorque(0.05);  // Small load torque disturbance
+        }
+        else {
+            motor.setLoadTorque(0.0);
+        }
+
+        // Apply control voltage to motor
+        motor.setVoltage(control_voltage);
+
+        // Update motor state
+        motor.update(dt);
+
+        // Store data
+        data.push_back({
+            time,
+            setpoint,
+            actual_value,
+            control_voltage,
+            motor.getCurrent(),
+            motor.getSpeed(),
+            motor.getPosition(),
+            p_term,
+            i_term,
+            d_term
+            });
+
+        // Increment time
+        time += dt;
+    }
+
+    return data;
+}
+
+void saveToCSV(const std::vector<std::vector<double>>& data, const std::string& filename) {
+    std::ofstream file(filename);
+
+    // Write header
+    file << "Time,Setpoint,ActualValue,Voltage,Current,Speed,Position,P_Term,I_Term,D_Term\n";
+
+    // Write data
+    for (const auto& row : data) {
+        for (size_t i = 0; i < row.size(); ++i) {
+            file << std::fixed << std::setprecision(6) << row[i];
+            if (i < row.size() - 1) {
+                file << ",";
+            }
+        }
+        file << "\n";
+    }
+
+    file.close();
+}

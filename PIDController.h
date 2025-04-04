@@ -1,4 +1,8 @@
+// Ali Haghour 
+// 04-04-2025
+// PID controller template header file
 // PIDController.h
+
 #ifndef PID_CONTROLLER_H
 #define PID_CONTROLLER_H
 
