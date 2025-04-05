@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <algorithm> // For std::clamp
+#include <algorithm>
 
 PIDController::PIDController(double kp, double ki, double kd, double target)
     : Kp(kp), Ki(ki), Kd(kd), setpoint(target), error_sum(0.0), last_error(0.0), output(0.0),
@@ -84,26 +84,19 @@ void DCMotorModel::setLoadTorque(double lt) {
 }
 
 void DCMotorModel::update(double dt) {
-    // Calculate back-EMF
     double backEMF = kEMF * speed;
 
-    // Update current based on di/dt = (V - Ri - kEMF*ω) / L
     double di_dt = (voltage - resistance * current - backEMF) / inductance;
     current += di_dt * dt;
 
-    // Calculate motor torque
     double motorTorque = kTorque * current;
 
-    // Calculate net torque
     double netTorque = motorTorque - loadTorque - friction * speed;
 
-    // Update angular acceleration based on torque
     double angular_acceleration = netTorque / inertia;
 
-    // Update speed
     speed += angular_acceleration * dt;
 
-    // Update position
     position += speed * dt;
 }
 
@@ -141,12 +134,12 @@ std::vector<std::vector<double>> runMotorSimulation(double Kp, double Ki, double
     double ke, double j, double f,
     bool position_control,
     bool add_disturbance) {
-    // Initialize controller and DC motor
+
     PIDController pid(Kp, Ki, Kd, setpoint);
     DCMotorModel motor(r, l, kt, ke, j, f);
 
-    // Set appropriate output limits (voltage limits)
-    pid.setOutputLimits(-12.0, 12.0);  // Typical supply voltage for DC motors
+
+    pid.setOutputLimits(-12.0, 12.0);
 
     // Data for graphing:
     // [time, setpoint, actual_value(position or speed), voltage, current, speed, position, p_term, i_term, d_term]

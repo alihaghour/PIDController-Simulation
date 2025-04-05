@@ -11,16 +11,16 @@
 
 class PIDController {
 private:
-    double Kp;        // Proportional gain
-    double Ki;        // Integral gain
-    double Kd;        // Derivative gain
+    double Kp;       
+    double Ki;       
+    double Kd;        
 
-    double setpoint;  // Desired value
-    double error_sum; // Accumulated error for integral term
-    double last_error;// Previous error for derivative term
-    double output;    // Controller output
-    double output_min;// Output minimum limit
-    double output_max;// Output maximum limit
+    double setpoint;  
+    double error_sum;
+    double last_error;
+    double output;    
+    double output_min;
+    double output_max;
 
 public:
     PIDController(double kp, double ki, double kd, double target);
@@ -35,21 +35,21 @@ public:
 class DCMotorModel {
 private:
     // Electrical parameters
-    double resistance;    // Armature resistance (ohms)
-    double inductance;    // Armature inductance (henries)
-    double kTorque;       // Torque constant (N·m/A)
-    double kEMF;          // Back-EMF constant (V·s/rad)
+    double resistance;    // (ohms)
+    double inductance;    // (H)
+    double kTorque;       // (N·m/A)
+    double kEMF;          // (V·s/rad)
 
     // Mechanical parameters
-    double inertia;       // Rotor inertia (kg·m²)
-    double friction;      // Viscous friction coefficient (N·m·s/rad)
-    double loadTorque;    // External load torque (N·m)
+    double inertia;       // (kg·m^2)
+    double friction;      // (N·m·s/rad)
+    double loadTorque;    // (N·m)
 
     // State variables
-    double current;       // Armature current (A)
-    double voltage;       // Input voltage (V)
-    double speed;         // Angular velocity (rad/s)
-    double position;      // Angular position (rad)
+    double current;       // (A)
+    double voltage;       // (V)
+    double speed;         // (rad/s)
+    double position;      // (rad)
 
 public:
     DCMotorModel(double r = 1.0, double l = 0.5, double kt = 0.01, double ke = 0.01,
@@ -80,4 +80,4 @@ std::vector<std::vector<double>> runMotorSimulation(double Kp, double Ki, double
 // Function to save data to CSV for easy graphing in external tools
 void saveToCSV(const std::vector<std::vector<double>>& data, const std::string& filename);
 
-#endif // PID_CONTROLLER_H
+#endif
