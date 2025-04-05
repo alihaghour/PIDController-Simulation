@@ -2,6 +2,13 @@
 
 This project provides a C++ implementation of a PID (Proportional-Integral-Derivative) controller.
 The simulation outputs data to CSV files for visualization and analysis (I prefer to use GNU plot).
+
+## Dependencies
+
+GNUPlot - Required for graphing (WILL NOT WORK WITHOUT)
+
+http://www.gnuplot.info/download.html
+
 ## Instructions
 
 ### 1. Open the .exe
