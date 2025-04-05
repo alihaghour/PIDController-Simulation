@@ -2,6 +2,18 @@
 
 This project provides a C++ implementation of a PID (Proportional-Integral-Derivative) controller.
 The simulation outputs data to CSV files for visualization and analysis (I prefer to use GNU plot).
+## Instructions
+
+### 1. Open the .exe
+
+### 2. Enter the PID values and then click on Run Simulation
+
+### 3. Click 'OK' on both dialog boxes
+
+### 4. Graph should display (see examples below).
+
+### 5. To restart simulation. Close the graph and the CMD terminal.  Then repeat from step 2.
+
 
 ## Some examples
 
